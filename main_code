@@ -1,0 +1,170 @@
+#Poke version3
+#major tasks ---> dots are not touching each other at the start of the time
+#            ---> handle user input
+# Has the Dot and the Game class
+
+import pygame, random, math
+class Dot:
+    def __init__(self,color,center,radius,velocity,surface):
+        self.color = color
+        self.center = center
+        self.radius = radius
+        self.velocity = velocity
+        self.surface = surface
+        
+    def set_color(self, new_color):
+        self.color=new_color
+    def draw(self):
+        pygame.draw.circle(self.surface,self.color,self.center,self.radius)
+        
+    def collide(self,other_dot):
+        distance_x=self.center[0]-other_dot.center[0]
+        distance_y=self.center[1]-other_dot.center[1]
+        distance=math.sqrt(distance_x **2 + distance_y**2)
+       #if distance < self.radius + other_dot.radius:
+           #return True
+       #else:
+        #   return False
+        # the above4sentences can be written as:
+        return distance < self.radius + other_dot.radius
+                
+                
+                
+    def randomize(self):
+        width=self.surface.get_width()
+        height= self.surface.get_height()
+        self.center[0]=random.randint(self.radius, width - self.radius)
+        self.center[1]=random.randint(self.radius, height - self.radius)
+        
+    def move(self):
+        #self.center[0] = self.center[0] + self.velocity[0]
+        #self.center[1] = self.center[1] + self.velocity[1]
+        
+        size = self.surface.get_size() #sizeis a tuple (width, height)
+        for index in range(0,2):
+            self.center[index]=self.center[index]+self.velocity[index]
+            if self.center[index]<self.radius: #checking left or top
+                self.velocity[index]= -self.velocity[index]
+            if self.center[index] + self.radius> size[index]: #checking right or bottom
+                self.velocity[index]= -self.velocity[index]
+            
+        
+        
+class Game: 
+    def __init__(self,surface):
+        # Attributes that should be in every graphical game 
+        self.close_clicked = False
+        self.continue_game = True
+        self.game_clock = pygame.time.Clock()
+        self.frames_per_second = 60
+        self.surface = surface
+        self.bg_color = pygame.Color('black')
+        # Attributes that are sepcific to the game
+        self.score=0
+        self.create_dots()
+       
+    def create_dots(self):
+        self.big_dot = Dot(pygame.Color('blue'),[200,100],40,[2,1],self.surface)
+        self.small_dot = Dot(pygame.Color('red'),[50,50],30,[1,2],self.surface)
+        self.small_dot.randomize()
+        self.big_dot.randomize()
+        while self.small_dot.collide(self.big_dot):
+            self.small_dot.randomize()
+            self.big_dot.randomize()        
+    def play(self):
+        while self.close_clicked == False: #represents the window is open
+            self.handle_events()
+            self.draw()
+            if self.continue_game == True:
+                self.update()
+                self.decide_continue()
+            self.game_clock.tick(self.frames_per_second)
+    def handle_events(self):
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                self.close_clicked = True
+            #if event.type=pygame.KEYDOWNF and KEYUP for pong
+            
+            if event.type== pygame.MOUSEBUTTONUP and self.continue_game==True:
+                self.small_dot.randomize()
+                self.big_dot.randomize()
+            if event.type==pygame.KEYDOWN and self.continue_game==True:
+                self.handle_key_down(event)
+            
+            if event.type == pygame.KEYUP and self.continue_game==True:
+                self.handle_key_up(event)
+    def handle_key_up(self, event):
+        if event.key==pygame.K_a:
+            self.small_dot.set_color(pygame.Color('red'))
+            self.big_dot.set_color(pygame.Color('blue'))                
+    def handle_key_down(self, event):
+        if event.key==pygame.K_a:
+            self.small_dot.set_color(pygame.Color('Orange'))
+            self.big_dot.set_color(pygame.Color('Purple'))
+        
+           
+    def draw(self):
+        self.surface.fill(pygame.Color('black'))
+        self.small_dot.draw()
+        self.big_dot.draw()
+        #draw_score --> write all the 5 steps
+        self.draw_score()
+        if self.continue_game==False:
+            self.draw_game_over()
+        pygame.display.update()
+        self.draw_game_over()
+    def draw_game_over(self):
+        #step 1 - color
+        fg_color=pygame.Color('red')
+        bg_color=pygame.Color('blue')
+        #step 2 - create Font caobject
+        font=pygame.font.SysFont('', 100)
+        #steo 4 render
+        text_box=font.render('Game Over', True, fg_color, bg_color)
+        location = (0, self.surface.get_height()-text_box.get_height())
+        #step 5 - blit
+        self.surface.blit(text_box, location)
+    def draw_score(self):
+        #step 1 - color
+        fg_color=pygame.Color('white')
+        #step 2 - create Font object
+        font = pygame.font.SysFont('',70) #if you leave the font area as a normal blank string, it takes the default system font
+        #step 3 - render the font object
+        text_score= 'Score: '+str(self.score)
+        text_box = font.render(text_score, True, fg_color, self.bg_color)
+        #Step 4 - compute the location
+        location = (0,0)
+        #step 5 - blit
+        self.surface.blit(text_box, location)
+        
+        
+        
+    def update(self): #score is kept here as the score is gonna keep updating even if the player wont be doing anything
+        self.small_dot.move()
+        self.big_dot.move()
+        self.score = pygame.time.get_ticks()//1000
+    def decide_continue(self):
+        # Example end of game condition
+        if self.small_dot.collide(self.big_dot):
+            self.continue_game = False     #make sure it's self.whatever because else it wont stop the game
+    
+def main():
+    # Step 1: Initialize the pygame
+    pygame.init()
+    # Step 2: create a graphical display and set the caption
+    size = (500,400)
+    title = 'Poke The Dots'
+    pygame.display.set_mode(size)
+    pygame.display.set_caption(title)
+    # Step 3:  get window's surface
+    w_surface = pygame.display.get_surface()
+    # Step 4:  Create game object
+    game = Game(w_surface)
+    game.play()
+    pygame.quit()
+
+main()
+
+
+
